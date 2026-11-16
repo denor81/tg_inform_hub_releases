@@ -253,4 +253,7 @@ PY
 
 [[ $EUID -eq 0 ]] || fail "installation requires root; run this script through sudo"
 echo "Installing verified public release $tag from $REPOSITORY."
+if { true </dev/tty; } 2>/dev/null; then
+    exec "$extract_root/deploy/install.sh" --release-bundle </dev/tty
+fi
 exec "$extract_root/deploy/install.sh" --release-bundle

@@ -1,24 +1,27 @@
 # Notification Hub releases
 
-This directory contains the canonical files for the separate public binary
-release repository `denor81/tg_inform_hub_releases`.
+## Быстрая установка
 
-This file is also the canonical public-repository README. Copy
-`attest-release.yml` to `.github/workflows/attest-release.yml`, copy
-`install.sh` to the repository root, and copy this file to `README.md`. The
-public repository must not receive this private source repository's Git
-history.
+Для установки последней стабильной версии выполните одну команду:
 
-The public release channel contains only its minimal README and bootstrap,
-protected workflow, immutable release artifacts, strict manifests, and GitHub
-Artifact Attestation bundles. It must not contain Hub configuration,
-credentials, databases, logs, notification content, or private source files.
+```bash
+curl -fsSL https://raw.githubusercontent.com/denor81/tg_inform_hub_releases/main/install.sh | sudo bash
+```
 
-## Install a verified public release
+GitHub token не нужен. Bootstrap автоматически скачает последний stable-релиз,
+проверит его GitHub/Sigstore attestations, manifest, SHA-256 и содержимое архива
+и только после этого запустит установщик.
 
-The bootstrap needs no GitHub account or server-side token. Download it over
-HTTPS from the protected public default branch, inspect it if desired, and run
-it separately rather than piping network content directly into a root shell:
+Для последующих обновлений установленного Hub используйте:
+
+```bash
+sudo notify-hub update apply
+```
+
+## Расширенная инструкция
+
+Более осторожный вариант сохраняет bootstrap в файл: его можно предварительно
+просмотреть, вывести список релизов и только затем запустить от root.
 
 ```bash
 curl --fail --silent --show-error --location \
@@ -29,18 +32,39 @@ chmod 0755 /tmp/install-notification-hub.sh
 sudo /tmp/install-notification-hub.sh
 ```
 
-The default is the latest stable release. To select an exact stable or approved
-release candidate:
+По умолчанию устанавливается последний stable-релиз. Можно выбрать точную
+стабильную версию или явно разрешить release candidate:
 
 ```bash
 sudo /tmp/install-notification-hub.sh --version v0.3.0
 sudo /tmp/install-notification-hub.sh --channel rc
-sudo /tmp/install-notification-hub.sh --version v0.3.0-rc.1
+sudo /tmp/install-notification-hub.sh --version v0.3.0-rc.2
 ```
 
-The bootstrap downloads a checksum-pinned GitHub CLI verifier, verifies the
-manifest's GitHub Artifact Attestation before trusting its digest, verifies the
-artifact digest and attestation, checks every archive entry against the strict
-manifest, and only then invokes the packaged installer. Existing A/B installs
-must update with `sudo notify-hub update apply`; the bootstrap never bypasses
-the installed transaction engine.
+Bootstrap скачивает checksum-pinned GitHub CLI verifier, проверяет GitHub
+Artifact Attestation манифеста до доверия указанному в нём digest, затем digest
+и attestation архива и каждый archive entry по strict manifest. Release-код не
+запускается до завершения всех проверок.
+
+Если Hub уже установлен в A/B layout, public bootstrap намеренно не обходит
+транзакционный updater. Используйте точную версию при необходимости:
+
+```bash
+sudo notify-hub update check
+sudo notify-hub update apply --version v0.3.0
+sudo notify-hub update status
+```
+
+## О репозитории
+
+Это отдельный публичный binary release repository
+`denor81/tg_inform_hub_releases`. Он содержит только минимальный README,
+bootstrap, защищённый attestation workflow, immutable release artifacts, strict
+manifests и GitHub Artifact Attestation bundles. Здесь никогда не должны
+появляться конфигурация Hub, credentials, базы данных, логи, уведомления или
+история приватных исходников.
+
+Canonical-копии публичных файлов поддерживаются в приватном исходном
+репозитории: `release-channel/README.md`, `release-channel/install.sh` и
+`release-channel/attest-release.yml`. Последний копируется в публичный путь
+`.github/workflows/attest-release.yml`.
