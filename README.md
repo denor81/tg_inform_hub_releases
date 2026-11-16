@@ -36,7 +36,7 @@ sudo /tmp/install-notification-hub.sh
 стабильную версию или явно разрешить release candidate:
 
 ```bash
-sudo /tmp/install-notification-hub.sh --version v0.3.0
+sudo /tmp/install-notification-hub.sh --version v0.3.1
 sudo /tmp/install-notification-hub.sh --channel rc
 sudo /tmp/install-notification-hub.sh --version v0.3.0-rc.2
 ```
@@ -51,9 +51,25 @@ Artifact Attestation манифеста до доверия указанному
 
 ```bash
 sudo notify-hub update check
-sudo notify-hub update apply --version v0.3.0
+sudo notify-hub update apply --version v0.3.1
 sudo notify-hub update status
 ```
+
+## Удаление
+
+Показать план, удалить только программу с сохранением данных или выполнить
+полное необратимое удаление:
+
+```bash
+sudo notify-hub uninstall --dry-run
+sudo notify-hub uninstall
+sudo notify-hub uninstall --purge-all
+```
+
+Обычное удаление сохраняет конфигурацию, базу, очередь, credentials и системного
+пользователя для безопасной повторной установки. `--purge-all` дополнительно
+удаляет их и требует ввести точное подтверждение `DELETE notification-hub`.
+Ubuntu packages и внешняя конфигурация Nginx не удаляются.
 
 ## О репозитории
 
