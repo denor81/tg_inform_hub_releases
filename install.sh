@@ -89,7 +89,7 @@ for item in data:
     names = {
         artifact,
         f"notification-hub-{version}-linux-{architecture}.manifest.json",
-        f"attestations-{tag}.intoto.jsonl",
+        f"{artifact}.bundle.jsonl",
     }
     assets = item.get("assets")
     if not isinstance(assets, list) or len(assets) > 20:
@@ -119,7 +119,7 @@ if not eligible:
     raise SystemExit("no matching signed release is available")
 _, tag, artifact, found = eligible[-1]
 manifest = artifact.removesuffix(".tar.gz") + ".manifest.json"
-bundle = f"attestations-{tag}.intoto.jsonl"
+bundle = f"{artifact}.bundle.jsonl"
 print(tag)
 for name in (artifact, manifest, bundle):
     print(name, found[name][1], found[name][0], sep="\t")
@@ -217,24 +217,38 @@ from pathlib import Path
 archive, manifest_path, destination = map(Path, sys.argv[1:])
 manifest = json.loads(manifest_path.read_bytes())
 expected = {item["path"]: item for item in manifest["files"]}
+expected_directories = {
+    str(parent)
+    for name in expected
+    for parent in Path(name).parents
+    if str(parent) != "."
+}
 with tarfile.open(archive, "r:gz") as tar:
     members = tar.getmembers()
-    if len(members) != len(expected) or {member.name for member in members} != set(expected):
+    member_names = [member.name.rstrip("/") for member in members]
+    if len(member_names) != len(set(member_names)):
+        raise SystemExit("archive contains a duplicate entry")
+    if set(member_names) != set(expected) | expected_directories:
         raise SystemExit("archive payload does not match manifest")
     for member in members:
+        name = member.name.rstrip("/")
+        if member.isdir():
+            if name not in expected_directories:
+                raise SystemExit("archive contains an unexpected directory")
+            continue
         if not member.isfile() or member.issym() or member.islnk():
             raise SystemExit("archive contains a non-regular entry")
         source = tar.extractfile(member)
         if source is None:
             raise SystemExit("archive entry cannot be read")
         data = source.read()
-        item = expected[member.name]
+        item = expected[name]
         if len(data) != item["size"] or hashlib.sha256(data).hexdigest() != item["sha256"]:
             raise SystemExit("archive entry digest is invalid")
-        target = destination / member.name
+        target = destination / name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
-        target.chmod(0o755 if member.name in {"deploy/install.sh", "deploy/notify-hub", "deploy/uninstall.sh"} else 0o644)
+        target.chmod(0o755 if name in {"deploy/install.sh", "deploy/notify-hub", "deploy/uninstall.sh"} else 0o644)
 PY
 
 [[ $EUID -eq 0 ]] || fail "installation requires root; run this script through sudo"
